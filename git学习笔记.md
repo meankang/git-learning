@@ -947,7 +947,7 @@ git reset --hard ghi9012
 
 ## 第六阶段：远程仓库操作
 
-### 6.1 SSH Key 配置
+### 6.1 远程认证：SSH Key 与 Token
 
 如果远程仓库使用 SSH 地址（如 `git@github.com:用户名/仓库名.git`），需要配置 SSH 密钥进行身份验证。其中 `用户名` 是你的 GitHub 用户名，`仓库名` 是你的仓库名称，实际地址在 GitHub 仓库页面点 **Code** → **SSH** 查看。
 
@@ -1015,7 +1015,7 @@ Hi username! You've successfully authenticated.
 | 安全性 | 私钥在本地，泄露了要重新生成 | Token 可以随时撤销、设过期时间、控制权限 |
 | 推荐 | ✅ 日常使用 | 备用方案，或公司要求时使用 |
 
-> GitHub 从 2021 年起不允许用账号密码推代码，HTTPS 方式需要用 Personal Access Token 代替密码。
+> GitHub 从 2021 年起不再支持用账号密码通过 HTTPS 做 Git 认证，HTTPS 方式需要用 Personal Access Token 代替密码。
 > Token 本质上就是你的身份凭证，应该像密码一样保管，只用于“代表你自己”访问仓库，不要发给别人共用。
 
 **Token 生成步骤：**
@@ -1052,7 +1052,7 @@ git push -u origin master
 - 需要控制权限或设过期时间
 - 在你自己的电脑上临时使用 HTTPS，或者不方便配置 SSH 时
 
-### 6.2 远程仓库管理
+### 6.2 远程仓库与地址
 
 > 远程仓库操作本身不区分“这是你自己的仓库”还是“别人的仓库”，命令形式基本一样；真正决定能不能成功的是你是否有对应权限，以及仓库本身有没有限制。
 > 一般来说：`clone` / `fetch` / `pull` 需要读权限，`push` 需要写权限；如果目标分支受保护，可能只能提 Pull Request，不能直接推到 `master`。
@@ -1064,17 +1064,16 @@ git push -u origin master
 | `git remote add origin <url>` | 添加远程仓库，起别名 origin |
 | `git remote rm origin` | 删除远程仓库别名 |
 
-**远程仓库的三种地址格式（同一个仓库，地址不同）：**
+**远程仓库的两种常见地址格式（同一个仓库，地址不同）：**
 
 | 类型 | 地址格式 | 验证方式 |
 |------|---------|---------|
 | SSH | `git@github.com:用户名/仓库名.git` | SSH Key（不用输密码，推荐） |
 | HTTPS | `https://github.com/用户名/仓库名.git` | Token（首次或凭据失效时输入，详见 6.1） |
-| GitHub CLI | `gh repo clone 用户名/仓库名` | GitHub CLI 工具（了解即可） |
 
-> **GitHub CLI（gh）** 是 GitHub 官方出的命令行工具，功能比 git 更多（创建仓库、提 PR、看 issue 等）。效果和 git clone 一样，只是用 `gh` 命令操作。日常用 SSH 或 HTTPS 就够了，不用专门装 gh。
+> **GitHub CLI（gh）** 是 GitHub 官方出的命令行工具，功能比 git 更多（创建仓库、提 PR、看 issue 等）。比如 `gh repo clone 用户名/仓库名` 也能克隆仓库，但它是一条命令，不是远程仓库地址。日常用 SSH 或 HTTPS 就够了，不用专门装 gh。
 
-> 在 GitHub 仓库页面点 **Code** 按钮，可以切换查看三种地址。
+> 在 GitHub 仓库页面点 **Code** 按钮，可以切换查看 SSH 和 HTTPS 两种地址。
 
 输入命令：
 ```bash
@@ -1087,34 +1086,28 @@ origin    git@github.com:user/repo.git (fetch)
 origin    git@github.com:user/repo.git (push)
 ```
 
-### 6.3 推送到远程
+### 6.3 克隆仓库
+
+从远程仓库复制一份到本地：
 
 输入命令：
 ```bash
-# 首次推送，-u 设置上游分支（以后可以直接 git push）
-git push -u origin master
-
-# 之后推送
-git push
+git clone git@github.com:user/repo.git
 ```
-
-> `-u` 只需要第一次加，之后 Git 记住了关联关系，直接 `git push` 就行。
 
 反馈结果：
 ```
-Enumerating objects: 33, done.
-Writing objects: 100% (33/33), 3.25 KiB, done.
-Total 33 (delta 10), reused 0 (delta 0)
-To github.com:user/repo.git
- * [new branch]      master -> master
-branch 'master' set up to track 'origin/master'.
+Cloning into 'repo'...
+remote: Enumerating objects: 39, done.
+remote: Total 39 (delta 12), reused 33 (delta 10)
+Receiving objects: 100% (39/39), done.
 ```
 
-> `* [new branch] master -> master` 表示本地 master 推到了远程 master。
+克隆后自动设置好远程仓库关联，可以直接 `git push` / `git pull`。
 
-> SSH 地址格式：`git@github.com:用户名/仓库名.git`，在 GitHub 仓库页面点 **Code** → **SSH** 可以找到。
+> 可以指定目录名：`git clone <url> 新目录名`
 
-### 6.4 从远程拉取更新
+### 6.4 获取远程更新
 
 **两种方式：**
 
@@ -1139,8 +1132,8 @@ From github.com:user/repo
 
 输入命令：
 ```bash
-# 2. 看看远程改了什么
-git diff master origin/master
+# 2. 看看远程改了什么（当前分支是谁，就拿谁和 origin/master 比）
+git diff HEAD origin/master
 ```
 
 反馈结果：
@@ -1184,28 +1177,34 @@ Fast-forward
 
 > 如果设置了 `pull.rebase=true`，那么 `git pull` 会变成 `fetch + rebase`。
 
-### 6.5 克隆远程仓库
-
-从远程仓库复制一份到本地：
+### 6.5 推送到远程
 
 输入命令：
 ```bash
-git clone git@github.com:user/repo.git
+# 首次推送，-u 设置上游分支（以后可以直接 git push）
+git push -u origin master
+
+# 之后推送
+git push
 ```
+
+> `-u` 只需要第一次加，之后 Git 记住了关联关系，直接 `git push` 就行。
 
 反馈结果：
 ```
-Cloning into 'repo'...
-remote: Enumerating objects: 39, done.
-remote: Total 39 (delta 12), reused 33 (delta 10)
-Receiving objects: 100% (39/39), done.
+Enumerating objects: 33, done.
+Writing objects: 100% (33/33), 3.25 KiB, done.
+Total 33 (delta 10), reused 0 (delta 0)
+To github.com:user/repo.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
 ```
 
-克隆后自动设置好远程仓库关联，可以直接 `git push` / `git pull`。
+> `* [new branch] master -> master` 表示本地 master 推到了远程 master。
 
-> 可以指定目录名：`git clone <url> 新目录名`
+> SSH 地址格式：`git@github.com:用户名/仓库名.git`，在 GitHub 仓库页面点 **Code** → **SSH** 可以找到。
 
-### 6.6 推送标签到远程
+### 6.6 推送标签
 
 默认 `git push` 不会推送标签，需要显式推送：
 
@@ -1215,13 +1214,16 @@ git push origin v1.0       # 推送单个标签
 git push origin --tags     # 推送所有标签
 ```
 
-### 6.7 完整工作流程示例
+### 6.7 常见工况与处理流程
 
-**从零开始推送到 GitHub：**
+> 远程操作没有一条“放之四海而皆准”的完整流程，要先判断自己处在哪种工况，再选对应动作。下面把最常见的工况集中列出来。
 
-输入命令：
+**工况A：本地已有仓库，要第一次推到空远程**
+
+> 这个工况默认远程仓库是空的；如果你在 GitHub 上先创建了 README、LICENSE 等文件，第一次 `git push` 可能会被拒绝，需要先 `fetch/pull` 再处理。
+
 ```bash
-# 1. 本地创建仓库
+# 1. 本地创建提交
 git init
 git add .
 git commit -m "初始提交"
@@ -1229,13 +1231,12 @@ git commit -m "初始提交"
 # 2. 关联远程仓库
 git remote add origin git@github.com:user/repo.git
 
-# 3. 推送
+# 3. 首次推送
 git push -u origin master
 ```
 
-**从 GitHub 克隆并开始开发：**
+**工况B：从远程克隆下来，正常开分支开发**
 
-输入命令：
 ```bash
 # 1. 克隆
 git clone git@github.com:user/repo.git
@@ -1244,11 +1245,343 @@ git clone git@github.com:user/repo.git
 cd repo
 git checkout -b feature-xxx
 
-# 3. 开发完推送分支
+# 3. 修改文件并提交
+git add .
+git commit -m "feature: 完成某个功能"
+
+# 4. 推送分支
 git push -u origin feature-xxx
 
-# 4. 在 GitHub 上创建 Pull Request，合并到 master
+# 5. 在 GitHub 上创建 Pull Request，合并到 master
 ```
+
+**工况C：远程有新提交，本地工作区干净，只想安全同步**
+
+```bash
+# 1. 先下载远程更新
+git fetch origin
+
+# 2. 看看差异
+git diff HEAD origin/master
+
+# 3. 确认后合并
+git merge origin/master
+```
+
+> 想一步完成也可以用 `git pull`，但学习阶段更推荐 `fetch` 后先看再合并。
+
+**工况D：本地有已跟踪但未提交的修改，远程也更新了**
+
+```bash
+# 1. 先看本地改了什么
+git status
+git diff
+
+# 2. 二选一：先提交，或者先 stash
+git add .
+git commit -m "WIP: 暂存当前进度"
+
+# 或者：
+git stash
+
+# 3. 再获取远程更新
+git fetch origin
+git merge origin/master
+
+# 4. 如果刚才用了 stash，最后恢复
+git stash pop
+```
+
+**工况E：本地有未跟踪文件，远程也有同名文件**
+
+```bash
+# 1. 先查看本地未跟踪文件
+git status
+
+# 2. 导出远程版本做对比
+git show origin/master:文件名 > 远程版文件名
+git diff --no-index 本地文件名 远程版文件名
+
+# 3. 决定后处理本地文件
+#    可以改名、备份、删除，或先提交来故意练冲突
+
+# 4. 再合并远程
+git merge origin/master
+```
+
+> 这是你这次 `git学习笔记.md` 的真实工况，不能直接套“已跟踪文件 diff”的那套流程。
+
+**工况F：本地和远程各自都有提交，要先对比再融合**
+
+```bash
+# 1. 先获取远程提交
+git fetch origin
+
+# 2. 看两边各自多了什么提交
+git log --oneline --left-right HEAD...origin/master
+
+# 3. 再看文件差异
+git diff HEAD origin/master
+
+# 4. 确认后合并
+git merge origin/master
+```
+
+**工况G：`push` 被拒绝（non-fast-forward）**
+
+```bash
+# 1. 先获取远程更新
+git fetch origin
+
+# 2. 看远程比本地多了什么
+git log --oneline HEAD..origin/master
+
+# 3. 合并远程
+git merge origin/master
+
+# 4. 解决完冲突后再推送
+git push origin master
+```
+
+> 这种报错通常表示：远程分支比你的本地分支更新，你不能直接把自己的历史硬推上去。
+
+**工况H：故意练一次合并冲突**
+
+```bash
+# 1. 本地先提交一次
+git add 文件名
+git commit -m "本地修改"
+
+# 2. 获取并合并远程
+git fetch origin
+git merge origin/master
+
+# 3. 打开冲突文件，处理冲突标记
+git add 文件名
+git commit -m "解决合并冲突"
+```
+
+### 6.8 实战案例：本地与远程融合
+
+**背景：**
+
+典型情况：
+- 有一个本地仓库（可能通过U盘拷贝或其他方式创建）
+- 有一个远程仓库（GitHub/GitLab）
+- 两边都有修改，需要对齐合并
+- **以远程为主，但保留本地有价值的文件**
+
+实际案例：
+- 两台电脑（PC和linbl）都有同一个项目的仓库
+- 一台电脑（linbl）已经更新并推送到GitHub
+- 另一台电脑（PC）也有一些本地修改
+- 需要同步，以远程为主
+
+**操作步骤：**
+
+#### 步骤 1：连接远程仓库
+
+```bash
+# 1. 添加远程仓库地址
+git remote add origin https://github.com/用户名/仓库名.git
+
+# 2. 验证是否添加成功
+git remote -v
+```
+
+**这一步要点：**
+- `origin` 是远程仓库的别名（约定俗成的名字）
+- 一个仓库可以有多个远程别名（如同时添加GitHub和Gitee）
+- HTTPS 访问公共仓库时，`clone` / `fetch` 通常可以直接进行；但 `push` 仍然需要认证。私有仓库通常在访问时就需要认证（Token或SSH）
+
+#### 步骤 2：获取远程内容
+
+```bash
+# 1. 拉取远程内容（不覆盖本地）
+git fetch origin
+
+# 2. 查看远程分支
+git branch -r
+
+# 3. 查看所有分支（本地+远程）
+git branch -a
+```
+
+**这一步要点：`fetch` vs `pull`**
+- `git fetch`：只下载到`.git`目录的远程追踪分支，**不覆盖本地工作区**
+- `git pull`：下载 + 自动合并，**可能产生冲突，或者因为本地修改会被覆盖而被 Git 拒绝**
+- **学习阶段建议用`fetch`，更安全！**
+
+**Git的"第四区"：远程追踪分支**
+```
+工作区 → 暂存区 → 本地仓库 → 远程追踪分支（origin/master）
+```
+- 远程追踪分支是只读的
+- 存在`.git`目录里
+- 用`origin/master`表示远程的master分支
+
+#### 步骤 3：对比本地和远程
+
+```bash
+# 1. 查看本地文件
+ls -la                     # Git Bash / Linux / macOS
+Get-ChildItem -Force       # PowerShell
+
+# 2. 查看远程文件
+git ls-tree -r origin/master --name-only
+
+# 3. 查看远程某个文件的内容
+git show origin/master:文件名
+
+# 4. 对比具体文件的差异（适合“本地已跟踪文件”和远程版本对比）
+git diff origin/master -- 文件名
+
+# 5. 如果本地是未跟踪文件，先把远程版本导出，再对比
+git show origin/master:文件名 > 远程版文件名
+git diff --no-index 本地文件名 远程版文件名
+
+# 6. 查看差异概览
+git diff --stat origin/master
+
+# 7. 查看提交历史（带作者信息）
+git log --format="%an <%ae> - %s" --all
+```
+
+**这一步技巧：**
+- 用`cat 文件名`或 `Get-Content 文件名` 查看本地文件内容
+- 用`git show origin/master:文件名`查看远程文件内容
+- 本地已跟踪文件适合直接用`git diff`
+- 本地未跟踪文件更适合先导出远程版本，再用`git diff --no-index`
+- 用SourceTree图形化工具更直观
+
+**对比命令速查表：**
+
+| 命令 | 作用 | 使用场景 |
+|------|------|---------|
+| `git diff --stat origin/master` | 差异概览（文件名+行数变化） | 快速了解有哪些不同 |
+| `git diff origin/master -- 文件名` | 具体文件的详细差异 | 本地已跟踪文件 vs 远程版本 |
+| `git diff --no-index 本地文件 远程版文件` | 两个普通文件的差异 | 本地未跟踪文件 vs 远程导出文件 |
+| `git ls-tree -r origin/master --name-only` | 列出远程所有文件 | 看远程有哪些文件 |
+| `git show origin/master:文件名` | 查看远程文件内容 | 对比某个文件的具体内容 |
+| `cat 文件名` / `Get-Content 文件名` | 查看本地文件内容 | 和远程版本对比 |
+
+#### 步骤 4：做出决策并融合
+
+**这一步先确认 3 件事：**
+```bash
+# 1. 看工作区是否干净
+git status
+
+# 2. 确认自己当前在哪个分支
+git branch --show-current
+
+# 3. 如果已经有本地提交，先留一个备份分支
+git branch backup-before-sync
+```
+
+> `git reset --hard` 只会重置已追踪的内容；如果工作区里还有未提交的文件，尤其是未追踪文件，分支备份不一定能兜住，最好先手动备份，或先 commit 留痕。
+
+**场景A：先对比，再逐个决策（最推荐）**
+```bash
+# 对比某个文件
+git diff origin/master -- 文件名
+
+# 手动修改成你最终想保留的内容
+
+# 然后提交推送
+git add .
+git commit -m "合并本地和远程的内容"
+git push origin master
+```
+- 最适合学习阶段
+- 能清楚知道“本地改了什么，远程改了什么”
+- 不会一上来就做高风险操作
+
+**场景B：完全以远程为准（高风险）**
+```bash
+git reset --hard origin/master
+```
+- 本地所有文件变成和远程一模一样
+- ⚠️ 本地已追踪的修改会丢失
+- ✅ 未追踪的文件（untracked）不会被删除
+
+**场景C：保留本地文件，以远程为主**
+```bash
+# 1. 先备份本地独有的文件（手动复制到其他地方）
+
+# 2. 重置到远程版本
+git reset --hard origin/master
+
+# 3. 把备份的文件放回来
+
+# 4. 添加到暂存区并提交
+git add .
+git commit -m "添加本地独有的文件"
+git push origin master
+```
+
+**场景D：故意练一次合并冲突**
+```bash
+# 1. 先把本地同名文件提交一次
+git add git学习笔记.md
+git commit -m "提交本地版笔记"
+
+# 2. 再合并远程
+git merge origin/master
+```
+- 如果两边改了同一个文件的同一部分，就会进入冲突状态
+- 打开冲突文件，处理 `<<<<<<<` / `=======` / `>>>>>>>` 标记
+- 解决后再执行：
+```bash
+git add git学习笔记.md
+git commit -m "解决合并冲突"
+```
+
+#### 步骤 5：提交和推送
+
+```bash
+# 1. 添加到暂存区
+git add .                    # 添加所有文件
+git add 文件名               # 添加单个文件
+
+# 2. 提交到本地仓库
+git commit -m "提交说明"
+
+# 3. 推送到远程仓库
+git push origin master
+
+# 4. 最后确认状态
+git status
+git log --oneline --decorate --graph --all -10
+```
+
+**提交历史分析：**
+```bash
+# 查看所有提交的作者信息（可以看出是哪台电脑/用户提交的）
+git log --format="%an <%ae> - %s" --all
+```
+
+### 6.9 常见问题
+
+**Q1：fetch会覆盖本地文件吗？**
+A：不会！fetch只下载到`.git`目录的远程追踪分支，完全不动工作区。
+
+**Q2：`git reset --hard`会删除未追踪的文件吗？**
+A：不会！只会重置已追踪的文件，untracked文件保持不变。
+
+**Q3：可以同时添加多个远程仓库吗？**
+A：可以！可以添加多个别名（如origin、github、gitee），指向不同地址。
+
+**Q4：远程仓库需要设置user.name和user.email吗？**
+A：不需要！这些是本地配置，只影响提交记录里的作者信息，远程仓库本身不需要设置。
+
+**Q5：push时提示需要认证怎么办？**
+A：
+- 公共仓库：通常不需要认证
+- 私有仓库：需要生成Personal Access Token，push时输入Token代替密码
+
+**Q6：为什么切换分支后，资源管理器或 VSCode 里看到的文件会变？**
+A：因为 Git 会把工作区文件切换成目标分支对应的版本。你切到别的分支，看到的就是那个分支当时的文件快照。
 
 ---
 
