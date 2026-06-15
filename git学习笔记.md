@@ -1761,6 +1761,102 @@ A：
 **Q6：为什么切换分支后，资源管理器或 VSCode 里看到的文件会变？**
 A：因为 Git 会把工作区文件切换成目标分支对应的版本。你切到别的分支，看到的就是那个分支当时的文件快照。
 
+### 6.10 多远程仓库管理
+
+一个本地仓库可以绑定多个远程仓库。Git 的本地仓库和远程仓库是**松耦合**的，随时可以换绑、加绑，不影响仓库内容本身。
+
+#### 原理
+
+```
+本地仓库
+  ├── origin    →  GitHub-A（账号A的仓库）
+  └── github-b  →  GitHub-B（账号B的仓库）
+```
+
+**不管绑了几个远程，拉取和推送都要显式指定目标，不会自动同步到所有远程。**
+
+#### 操作命令
+
+| 命令 | 作用 |
+|------|------|
+| `git remote -v` | 查看当前所有远程及地址 |
+| `git remote add <别名> <url>` | 加绑一个新的远程仓库 |
+| `git remote set-url <别名> <url>` | 改绑（换远程地址） |
+| `git remote rm <别名>` | 删除某个远程别名 |
+| `git remote rename <旧名> <新名>` | 重命名远程别名 |
+
+#### 场景A：换绑（一刀两断）
+
+从别人的仓库克隆下来后，想完全切到自己新建的空仓库：
+
+```bash
+# 1. 在 GitHub 上新建一个空仓库（不要勾 README/LICENSE）
+
+# 2. 改 origin 指向新地址
+git remote set-url origin git@github.com:你的账号/新仓库.git
+
+# 3. 推送所有分支和标签
+git push -u origin --all
+git push -u origin --tags
+```
+
+> 之后 `origin` 指向你的仓库，和原仓库不再有关系。
+
+#### 场景B：加绑（两边都保留，最灵活）
+
+想保留原仓库的联系，同时推到自己的仓库：
+
+```bash
+# 1. 给新仓库起个别名
+git remote add mine git@github.com:你的账号/新仓库.git
+
+# 2. 查看绑定情况
+git remote -v
+# origin   git@github.com:原账号/原仓库.git (fetch/push)
+# mine     git@github.com:你的账号/新仓库.git (fetch/push)
+
+# 3. 推到自己的仓库
+git push mine --all
+git push mine --tags
+
+# 日常使用
+git pull origin master        # 从原仓库拉更新
+git push mine master          # 推到自己的仓库
+```
+
+#### 典型实战场景
+
+**场景1：从同事那里克隆了一个仓库，想存到自己 GitHub：**
+
+```bash
+# 克隆同事的仓库
+git clone git@github.com:同事/项目.git
+cd 项目
+
+# 在自己 GitHub 建空仓库，加绑
+git remote add myrepo git@github.com:我/项目.git
+
+# 推到自己的仓库
+git push myrepo --all
+```
+
+**场景2：一个项目同时推 GitHub 和 GitLab：**
+
+```bash
+git remote add gitlab git@gitlab.com:用户名/仓库.git
+git push gitlab --all
+```
+
+#### 注意事项
+
+| 问题 | 说明 |
+|------|------|
+| 认证 | 推到不同账号需要各自的 SSH Key 或 Token |
+| 权限 | 目标仓库必须有写权限（自己的仓库当然有） |
+| 历史 | commit 里的 `user.name`/`user.email` 不会变，那是提交时的快照 |
+| 空仓库 | 目标仓库必须是**空仓库**（不要勾 README/LICENSE），否则 push 冲突 |
+| 同步 | 多远程不会自动同步，每次 push/pull 要指定目标 |
+
 ---
 
 ## 第七阶段：图形化工具
@@ -1953,7 +2049,9 @@ A：常用格式：
 | `git remote` | 查看远程仓库列表 |
 | `git remote -v` | 查看远程仓库详细地址 |
 | `git remote add origin <url>` | 添加远程仓库 |
+| `git remote set-url origin <url>` | 修改远程仓库地址（换绑） |
 | `git remote rm origin` | 删除远程仓库别名 |
+| `git remote rename <旧> <新>` | 重命名远程别名 |
 | `git clone <url>` | 克隆远程仓库 |
 | `git push` | 推送到远程 |
 | `git push -u origin master` | 首次推送并设置上游分支 |
